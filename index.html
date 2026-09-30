@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickNotes</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --surface: #ffffff;
+        --text: #1f2937;
+        --muted: #4b5563;
+        --accent: #2563eb;
+        --border: #dbe3f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1.5rem 2rem;
+      }
+
+      .brand {
+        margin: 0 0 0.5rem;
+        font-size: 2rem;
+      }
+
+      .tagline {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      nav {
+        margin-top: 1rem;
+      }
+
+      nav a {
+        color: var(--accent);
+        text-decoration: none;
+        margin-right: 1rem;
+        font-weight: 600;
+      }
+
+      nav a:hover,
+      nav a:focus {
+        text-decoration: underline;
+      }
+
+      main {
+        max-width: 960px;
+        margin: 2rem auto;
+        padding: 0 1.25rem 3rem;
+      }
+
+      section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      h2,
+      h3 {
+        margin-top: 0;
+      }
+
+      ul,
+      ol {
+        padding-left: 1.25rem;
+      }
+
+      footer {
+        background: #111827;
+        color: #f9fafb;
+        text-align: center;
+        padding: 1rem 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 class="brand">QuickNotes</h1>
+      <p class="tagline">Write down your thoughts before they slip away.</p>
+      <nav aria-label="Main navigation">
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+      </nav>
+    </header>
+
+    <main>
+      <section>
+        <h2>Welcome to QuickNotes</h2>
+        <p>
+          QuickNotes is a simple way to capture ideas, reminders, and important information whenever inspiration strikes.
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>© 2026 QuickNotes</p>
+    </footer>
+  </body>
+</html>
