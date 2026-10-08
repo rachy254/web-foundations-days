@@ -1,0 +1,138 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+  --color-background: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-muted: #536174;
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e3a8a;
+  --color-border: #d7e0ec;
+  --color-input: #ffffff;
+}
+
+body.dark {
+  color-scheme: dark;
+  --color-background: #111827;
+  --color-surface: #1f2937;
+  --color-text: #f3f4f6;
+  --color-muted: #cbd5e1;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-border: #475569;
+  --color-input: #111827;
+}
+
+body {
+  display: grid;
+  min-height: 100vh;
+  margin: 0;
+  padding: 1.5rem;
+  place-items: center;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.5;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.note-card {
+  width: min(100%, 640px);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 2rem;
+  background: var(--color-surface);
+  box-shadow: 0 8px 24px rgb(23 37 84 / 8%);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+h1,
+.subtitle,
+.counts p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+.subtitle {
+  color: var(--color-muted);
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 12rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  background: var(--color-input);
+  color: var(--color-text);
+  font: inherit;
+  resize: vertical;
+}
+
+textarea:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgb(59 130 246 / 35%);
+  outline-offset: 2px;
+}
+
+.counts {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.75rem 0 1rem;
+  color: var(--color-muted);
+}
+
+.warning {
+  color: #c2410c;
+}
+
+.over {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+button {
+  border: 0;
+  border-radius: 0.4rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--color-primary);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--color-primary-hover);
+}
+
+@media (max-width: 480px) {
+  .note-card {
+    padding: 1.25rem;
+  }
+
+  .header {
+    flex-direction: column;
+  }
+}

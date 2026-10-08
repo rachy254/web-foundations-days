@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QuickNotes - Day 4</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <main class="note-card">
+      <div class="header">
+        <div>
+          <h1>QuickNotes</h1>
+          <p class="subtitle">Your thoughts, saved as you write.</p>
+        </div>
+        <button id="theme-toggle" type="button" aria-pressed="false">Dark mode</button>
+      </div>
+
+      <label for="note-text">Your note</label>
+      <textarea id="note-text" placeholder="Start typing your note..."></textarea>
+
+      <div class="counts" aria-live="polite">
+        <p id="char-count">0 / 200 characters</p>
+        <p id="word-count">0 words</p>
+      </div>
+
+      <button id="clear-btn" type="button">Clear note</button>
+    </main>
+  </body>
+</html>
