@@ -1,4 +1,4 @@
-﻿# TicketHub System Design
+# TicketHub System Design
 
 TicketHub lets customers discover events, choose seats, hold them briefly, and pay for tickets. The key design goal is that high demand must never cause the same seat to be sold twice.
 
@@ -23,10 +23,12 @@ TicketHub lets customers discover events, choose seats, hold them briefly, and p
 
 ## 2. Traffic estimates
 
-The facts specify daily totals and a 10-minute sale window, but not the detailed arrival curve or API calls per page. The figures below are average rates across those windows; the per-page and burst assumptions are stated explicitly.
+TicketHub has 2 million registered users. On a normal day, 50,000 visitors represent 2.5% of that registered base; the 200,000 buyers in the concert-sale scenario represent 10%. The facts specify daily totals and a 10-minute sale window, but not the detailed arrival curve or API calls per page. The figures below are average rates across those windows; the per-page and burst assumptions are stated explicitly.
 
 | Scenario | Calculation | Estimated average |
 | --- | --- | ---: |
+| Registered users (context) | 50,000 normal-day visitors / 2,000,000 registered users | 2.5% visit on a normal day |
+| Popular-sale reach (context) | 200,000 sale buyers / 2,000,000 registered users | 10% of registered users |
 | Normal page views | 50,000 visitors/day x 10 views | 500,000 views/day |
 | Normal reads | 500,000 / 86,400 seconds; assume one main application read per page | 5.8 reads/second |
 | Normal successful ticket writes | 5,000 / 86,400 seconds | 0.058 writes/second |
@@ -54,13 +56,13 @@ All endpoints use HTTPS. Buyer endpoints require authentication; the server gets
 | `GET /api/v1/me/orders/{order_id}` | Read the buyer's order and payment status | `200 OK` |
 | `GET /api/v1/me/tickets` | List the buyer's confirmed tickets | `200 OK` |
 
-The examples use `Authorization: Bearer <access-token>`; the server validates it and derives the buyer identity from it.
+In each authenticated request, the Authorization header carries a valid bearer access token. The server validates it and derives the buyer identity; it never accepts a buyer ID from the request body.
 
 Example hold request:
 
 ```http
 POST /api/v1/events/evt_42/holds
-Authorization: Bearer <access-token>
+Authorization: Bearer YOUR_ACCESS_TOKEN
 Idempotency-Key: 8b7b3f62-3c79-4e18-9e09-21fa940047d2
 Content-Type: application/json
 
@@ -95,7 +97,7 @@ Example payment request and pending response:
 
 ```http
 POST /api/v1/orders/ord_9001/payments
-Authorization: Bearer <access-token>
+Authorization: Bearer YOUR_ACCESS_TOKEN
 Idempotency-Key: 3f4b6956-0667-4f48-8a3f-dace229ac303
 Content-Type: application/json
 
@@ -312,4 +314,4 @@ Likely questions:
 
 ## 8. Presentation close
 
-â€œThe seat map is only a snapshot; the primary database is the authority. A conditional update inside a transaction lets only one request claim an available seat. The winner receives a hold; the other buyer gets a clear conflict and can choose another seat. A waiting room protects that database during the sale, and idempotency plus reconciliation protect payment retries.â€
+"The seat map is only a snapshot; the primary database is the authority. A conditional update inside a transaction lets only one request claim an available seat. The winner receives a hold; the other buyer gets a clear conflict and can choose another seat. A waiting room protects that database during the sale, and idempotency plus reconciliation protect payment retries."
