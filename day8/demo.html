@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TicketHub | Interactive Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17233b;
+      --muted: #66728a;
+      --line: #dce3ee;
+      --paper: #ffffff;
+      --bg: #f3f6fb;
+      --blue: #2555d9;
+      --blue-soft: #edf2ff;
+      --green: #137a55;
+      --green-soft: #e7f7ef;
+      --red: #a83232;
+      --red-soft: #fff0ee;
+      --amber: #835900;
+      --amber-soft: #fff5dc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    button, select { font: inherit; }
+
+    button {
+      min-height: 42px;
+      padding: 0.6rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--paper);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 650;
+    }
+
+    button:hover:not(:disabled) { border-color: var(--blue); }
+    button:focus-visible, select:focus-visible { outline: 3px solid #98b2ff; outline-offset: 2px; }
+    button:disabled { cursor: not-allowed; opacity: 0.55; }
+
+    .primary { border-color: var(--blue); background: var(--blue); color: white; }
+    .danger { color: var(--red); }
+
+    header {
+      padding: 1.25rem max(1rem, calc((100vw - 1100px) / 2));
+      background: #142448;
+      color: white;
+    }
+
+    header h1 { margin: 0; font-size: 1.5rem; }
+    header p { margin: 0.2rem 0 0; color: #d2dcf3; }
+
+    main { width: min(1100px, calc(100% - 2rem)); margin: 1.5rem auto 3rem; }
+    .panel { margin-bottom: 1rem; padding: 1.2rem; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+    .panel h2 { margin: 0 0 0.8rem; font-size: 1.15rem; }
+    .subtle { color: var(--muted); }
+    .eyebrow { margin: 0 0 0.3rem; color: var(--blue); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .topline, .toolbar, .event-list, .seat-grid, .columns, .summary-grid {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .topline { align-items: center; justify-content: space-between; flex-wrap: wrap; }
+    .toolbar { align-items: end; flex-wrap: wrap; margin-top: 1rem; }
+    .toolbar label { display: grid; gap: 0.25rem; font-size: 0.88rem; font-weight: 700; }
+    select { min-height: 42px; padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); }
+    .queue-box { display: grid; gap: 0.35rem; margin-top: 1rem; padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 12px; }
+    .queue-box p { margin: 0; }
+
+    .event-list { flex-wrap: wrap; }
+    .event-card { flex: 1 1 250px; padding: 1rem; text-align: left; }
+    .event-card[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-soft); }
+    .event-card strong, .event-card span { display: block; }
+    .event-card span { margin-top: 0.25rem; color: var(--muted); font-size: 0.9rem; font-weight: 450; }
+
+    .seat-grid { flex-wrap: wrap; }
+    .seat {
+      display: grid;
+      min-width: 112px;
+      min-height: 78px;
+      align-content: center;
+      gap: 0.15rem;
+      text-align: left;
+    }
+    .seat strong { font-size: 1rem; }
+    .seat span { color: var(--muted); font-size: 0.8rem; }
+    .seat[aria-pressed="true"] { outline: 3px solid var(--blue); outline-offset: 1px; }
+    .seat.HELD { border-color: #e7c86f; background: var(--amber-soft); }
+    .seat.SOLD { border-color: #a7d8bf; background: var(--green-soft); }
+    .seat.PAYMENT_PENDING { border-color: #b8a7df; background: #f2edff; }
+
+    .callout { margin: 0; padding: 0.8rem 1rem; border-radius: 10px; background: var(--blue-soft); color: #243c7a; }
+    .message { min-height: 3.5rem; margin: 1rem 0 0; padding: 0.8rem 1rem; border-radius: 10px; background: #f0f3f8; }
+    .message.success { background: var(--green-soft); color: #10583d; }
+    .message.error { background: var(--red-soft); color: #832626; }
+    .message.notice { background: var(--amber-soft); color: #6a4a00; }
+
+    .columns { align-items: stretch; }
+    .columns > section { flex: 1; min-width: 0; }
+    .summary-grid { flex-wrap: wrap; }
+    .summary-card { flex: 1 1 180px; padding: 0.85rem; border: 1px solid var(--line); border-radius: 12px; }
+    .summary-card strong { display: block; }
+    .summary-card span { color: var(--muted); font-size: 0.9rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    .ticket-list { display: grid; gap: 0.7rem; }
+    .ticket { padding: 0.8rem; border-left: 4px solid var(--green); border-radius: 8px; background: var(--green-soft); }
+    .ticket p { margin: 0.2rem 0 0; color: #335747; font-size: 0.9rem; }
+    footer { color: var(--muted); font-size: 0.88rem; }
+
+    @media (max-width: 680px) {
+      .columns { flex-direction: column; }
+      .panel { padding: 1rem; }
+      .seat { flex: 1 1 42%; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>TicketHub</h1>
+    <p>Interactive system-design demo · sample data only · no real payments</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="topline">
+        <div>
+          <p class="eyebrow">Browse events</p>
+          <h2>Find a show and choose a seat</h2>
+        </div>
+        <button id="resetButton" type="button">Reset demo</button>
+      </div>
+      <div id="events" class="event-list" aria-label="Sample events"></div>
+      <div class="toolbar">
+        <label for="buyerSelect">Acting as
+          <select id="buyerSelect">
+            <option value="buyer-a">Buyer A</option>
+            <option value="buyer-b">Buyer B</option>
+          </select>
+        </label>
+        <label for="paymentOutcome">Simulated payment result
+          <select id="paymentOutcome">
+            <option value="approved">Approved</option>
+            <option value="declined">Declined</option>
+            <option value="timeout">Timeout (reconcile later)</option>
+          </select>
+        </label>
+      </div>
+      <div class="queue-box">
+        <p><strong>Sale waiting room</strong> <span id="queuePosition" class="subtle"></span></p>
+        <p id="queueList" class="subtle" aria-live="polite"></p>
+        <div class="actions">
+          <button id="joinQueueButton" type="button">Join sale queue</button>
+          <button id="admitNextButton" type="button">Admit next buyer (demo)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="topline">
+        <div>
+          <p class="eyebrow">Seat map</p>
+          <h2 id="eventHeading"></h2>
+        </div>
+        <span class="subtle">Availability is a snapshot until a hold succeeds.</span>
+      </div>
+      <div id="seats" class="seat-grid" aria-label="Seats"></div>
+      <div class="actions">
+        <button id="holdButton" class="primary" type="button">Hold selected seat</button>
+        <button id="payButton" type="button">Pay / reconcile selected seat</button>
+        <button id="expireButton" class="danger" type="button">Expire my hold now (demo)</button>
+      </div>
+      <p id="message" class="message" role="status" aria-live="polite">Choose a seat to get started.</p>
+    </section>
+
+    <div class="columns">
+      <section class="panel">
+        <p class="eyebrow">Your orders</p>
+        <h2>Current buyer's activity</h2>
+        <div id="orders" class="summary-grid"></div>
+      </section>
+      <section class="panel">
+        <p class="eyebrow">Your tickets</p>
+        <h2>Confirmed purchases</h2>
+        <div id="tickets" class="ticket-list"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <p class="callout"><strong>Sale protection:</strong> In production, a durable FIFO waiting room admits buyers gradually. The primary database—not this sample screen or a cache—decides who gets a seat.</p>
+    </section>
+    <footer>This browser-only demo simulates customer flows and graceful errors. It is not connected to a backend, database, queue, or payment provider.</footer>
+  </main>
+
+  <script>
+    const events = [
+      {
+        id: "night-lights",
+        name: "The Night Lights Tour",
+        venue: "Harbor Arena",
+        date: "Friday, November 20 · 7:30 PM",
+        seats: [
+          { id: "A-01", section: "A", row: "1", number: "1", price: 8500 },
+          { id: "A-02", section: "A", row: "1", number: "2", price: 8500 },
+          { id: "A-03", section: "A", row: "1", number: "3", price: 8500 },
+          { id: "B-01", section: "B", row: "2", number: "1", price: 6200 },
+          { id: "B-02", section: "B", row: "2", number: "2", price: 6200 },
+          { id: "B-03", section: "B", row: "2", number: "3", price: 6200 }
+        ]
+      },
+      {
+        id: "city-jazz",
+        name: "City Jazz Festival",
+        venue: "Riverside Stage",
+        date: "Saturday, December 5 · 6:00 PM",
+        seats: [
+          { id: "C-01", section: "C", row: "1", number: "1", price: 5400 },
+          { id: "C-02", section: "C", row: "1", number: "2", price: 5400 },
+          { id: "C-03", section: "C", row: "1", number: "3", price: 5400 },
+          { id: "D-01", section: "D", row: "2", number: "1", price: 3900 },
+          { id: "D-02", section: "D", row: "2", number: "2", price: 3900 },
+          { id: "D-03", section: "D", row: "2", number: "3", price: 3900 }
+        ]
+      }
+    ];
+
+    const buyers = { "buyer-a": "Buyer A", "buyer-b": "Buyer B" };
+    let state;
+
+    function resetState() {
+      events.forEach((event) => event.seats.forEach((seat) => {
+        seat.status = "AVAILABLE";
+        seat.currentOrderId = null;
+        seat.holdExpiresAt = null;
+      }));
+      state = {
+        selectedEventId: events[0].id,
+        selectedSeatId: events[0].seats[0].id,
+        buyerId: "buyer-a",
+        orders: [],
+        queues: {},
+        admittedBuyers: {},
+        nextOrderId: 1
+      };
+      events.forEach((event) => {
+        state.queues[event.id] = [];
+        state.admittedBuyers[event.id] = [];
+      });
+      document.getElementById("buyerSelect").value = state.buyerId;
+      document.getElementById("paymentOutcome").value = "approved";
+      showMessage("Choose a seat to get started.", "");
+      render();
+    }
+
+    function currentEvent() {
+      return events.find((event) => event.id === state.selectedEventId);
+    }
+
+    function currentQueue() {
+      return state.queues[state.selectedEventId];
+    }
+
+    function currentAdmittedBuyers() {
+      return state.admittedBuyers[state.selectedEventId];
+    }
+
+    function selectedSeat() {
+      return currentEvent().seats.find((seat) => seat.id === state.selectedSeatId);
+    }
+
+    function currentOrder(seat) {
+      return state.orders.find((order) => order.id === seat.currentOrderId);
+    }
+
+    function showMessage(text, kind) {
+      const message = document.getElementById("message");
+      message.textContent = text;
+      message.className = `message ${kind}`;
+    }
+
+    function formatMoney(cents) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+    }
+
+    function statusLabel(status) {
+      return {
+        AVAILABLE: "Available",
+        HELD: "Held",
+        PAYMENT_PENDING: "Payment pending",
+        SOLD: "Sold",
+        EXPIRED: "Expired",
+        CANCELLED: "Cancelled",
+        PAID: "Paid"
+      }[status] || status;
+    }
+
+    function renderEvents() {
+      const target = document.getElementById("events");
+      target.replaceChildren();
+      events.forEach((event) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "event-card";
+        button.setAttribute("aria-pressed", String(event.id === state.selectedEventId));
+        const title = document.createElement("strong");
+        title.textContent = event.name;
+        const detail = document.createElement("span");
+        detail.textContent = `${event.venue} · ${event.date}`;
+        button.append(title, detail);
+        button.addEventListener("click", () => {
+          state.selectedEventId = event.id;
+          state.selectedSeatId = event.seats[0].id;
+          render();
+        });
+        target.append(button);
+      });
+    }
+
+    function renderSeats() {
+      const event = currentEvent();
+      document.getElementById("eventHeading").textContent = `${event.name} · ${event.venue}`;
+      const target = document.getElementById("seats");
+      target.replaceChildren();
+      event.seats.forEach((seat) => {
+        const order = currentOrder(seat);
+        const ownerText = order ? ` · ${buyers[order.userId]}` : "";
+          const displayStatus = order && order.status === "PAYMENT_PENDING" ? "PAYMENT_PENDING" : seat.status;
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `seat ${displayStatus}`;
+          button.setAttribute("aria-pressed", String(seat.id === state.selectedSeatId));
+          button.setAttribute("aria-label", `Section ${seat.section}, row ${seat.row}, seat ${seat.number}, ${statusLabel(displayStatus)}${ownerText}, ${formatMoney(seat.price)}`);
+        const name = document.createElement("strong");
+        name.textContent = `${seat.section}-${seat.number}`;
+        const detail = document.createElement("span");
+        detail.textContent = `${formatMoney(seat.price)} · ${statusLabel(displayStatus)}${ownerText}`;
+        button.append(name, detail);
+        button.addEventListener("click", () => {
+          state.selectedSeatId = seat.id;
+          render();
+        });
+        target.append(button);
+      });
+    }
+
+    function renderOrders() {
+      const target = document.getElementById("orders");
+      target.replaceChildren();
+      const orders = state.orders.filter((order) => order.userId === state.buyerId);
+      if (orders.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "subtle";
+        empty.textContent = "No orders yet for this buyer.";
+        target.append(empty);
+        return;
+      }
+      orders.forEach((order) => {
+        const card = document.createElement("div");
+        card.className = "summary-card";
+        const title = document.createElement("strong");
+        title.textContent = `${order.eventName} · ${order.seatId}`;
+        const status = document.createElement("span");
+        status.textContent = `${statusLabel(order.status)} · ${order.id}`;
+        card.append(title, status);
+        if (order.status === "HELD" || order.status === "PAYMENT_PENDING") {
+          const expiry = document.createElement("span");
+          expiry.textContent = order.status === "PAYMENT_PENDING"
+            ? "Reserved while payment is reconciled"
+            : `Expires in ${Math.max(0, Math.ceil((order.expiresAt - Date.now()) / 1000))}s`;
+          card.append(expiry);
+        }
+        target.append(card);
+      });
+    }
+
+    function renderTickets() {
+      const target = document.getElementById("tickets");
+      target.replaceChildren();
+      const tickets = state.orders.filter((order) => order.userId === state.buyerId && order.status === "PAID");
+      if (tickets.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "subtle";
+        empty.textContent = "Paid tickets will appear here.";
+        target.append(empty);
+        return;
+      }
+      tickets.forEach((order) => {
+        const ticket = document.createElement("div");
+        ticket.className = "ticket";
+        const title = document.createElement("strong");
+        title.textContent = `${order.eventName} · seat ${order.seatId}`;
+        const detail = document.createElement("p");
+        detail.textContent = `Ticket ${order.ticketId} · Order ${order.id}`;
+        ticket.append(title, detail);
+        target.append(ticket);
+      });
+    }
+
+    function renderQueue() {
+      const queue = currentQueue();
+      const admitted = currentAdmittedBuyers();
+      const position = queue.indexOf(state.buyerId);
+      const status = admitted.includes(state.buyerId)
+        ? "Admitted to this sale."
+        : position >= 0
+          ? `Your FIFO queue position: ${position + 1}.`
+          : "Join the queue to become eligible to hold a seat.";
+      document.getElementById("queuePosition").textContent = status;
+      document.getElementById("queueList").textContent = queue.length
+        ? `Waiting in order: ${queue.map((buyerId) => buyers[buyerId]).join(" → ")}`
+        : "No buyers waiting.";
+      document.getElementById("joinQueueButton").disabled =
+        admitted.includes(state.buyerId) || position >= 0;
+      document.getElementById("joinQueueButton").textContent =
+        admitted.includes(state.buyerId) ? "Buyer admitted" : position >= 0 ? "Already in queue" : "Join sale queue";
+      document.getElementById("admitNextButton").disabled = queue.length === 0;
+    }
+
+    function updateActions() {
+      const seat = selectedSeat();
+      const order = currentOrder(seat);
+      const mine = order && order.userId === state.buyerId;
+      const holdButton = document.getElementById("holdButton");
+      const payButton = document.getElementById("payButton");
+      const expireButton = document.getElementById("expireButton");
+      holdButton.disabled = !currentAdmittedBuyers().includes(state.buyerId);
+      payButton.disabled = !mine || !["HELD", "PAYMENT_PENDING"].includes(order.status);
+      payButton.textContent = order && order.status === "PAYMENT_PENDING"
+        ? "Reconcile pending payment"
+        : "Pay / reconcile selected seat";
+      expireButton.disabled = !mine || order.status !== "HELD";
+    }
+
+    function render() {
+      renderEvents();
+      renderSeats();
+      renderOrders();
+      renderTickets();
+      renderQueue();
+      updateActions();
+    }
+
+    function expireOrder(order) {
+      const event = events.find((item) => item.id === order.eventId);
+      const seat = event.seats.find((item) => item.id === order.seatId);
+      if (seat.currentOrderId === order.id && seat.status === "HELD") {
+        seat.status = "AVAILABLE";
+        seat.currentOrderId = null;
+        order.status = "EXPIRED";
+      }
+    }
+
+    function expireTimedOutHolds() {
+      let expired = false;
+      state.orders.forEach((order) => {
+        if (order.status === "HELD" && order.expiresAt <= Date.now()) {
+          expireOrder(order);
+          expired = true;
+        }
+      });
+      if (expired) showMessage("A hold expired and its seat is available again.", "notice");
+      render();
+    }
+
+    function createHold() {
+      if (!currentAdmittedBuyers().includes(state.buyerId)) {
+        showMessage("Join the FIFO waiting room and be admitted before holding a seat.", "notice");
+        return;
+      }
+      const seat = selectedSeat();
+      if (seat.status !== "AVAILABLE" || seat.currentOrderId) {
+        showMessage("409 Conflict — this seat is no longer available. Choose another seat.", "error");
+        return;
+      }
+      const event = currentEvent();
+      const order = {
+        id: `ORD-${String(state.nextOrderId++).padStart(4, "0")}`,
+        userId: state.buyerId,
+        eventId: event.id,
+        eventName: event.name,
+        seatId: seat.id,
+        status: "HELD",
+        expiresAt: Date.now() + 90000
+      };
+      state.orders.push(order);
+      seat.status = "HELD";
+      seat.holdExpiresAt = order.expiresAt;
+      seat.currentOrderId = order.id;
+      showMessage(`${buyers[state.buyerId]} holds seat ${seat.id} for 90 seconds. The database would return 201 Created.`, "success");
+      render();
+    }
+
+    function finishPayment(order, outcome) {
+      const seat = events.find((event) => event.id === order.eventId).seats.find((item) => item.id === order.seatId);
+      if (seat.currentOrderId !== order.id || !["HELD", "PAYMENT_PENDING"].includes(order.status)) {
+        showMessage("409 Conflict — this order no longer owns an active hold.", "error");
+        return;
+      }
+      if (outcome === "timeout") {
+        order.status = "PAYMENT_PENDING";
+        showMessage("Payment timed out. The seat stays reserved while the provider result is reconciled; do not retry with a new payment key.", "notice");
+      } else if (outcome === "declined") {
+        if (order.status === "PAYMENT_PENDING" && order.expiresAt <= Date.now()) {
+          expireOrder(order);
+          showMessage("Payment was declined after the hold expired. The seat has been released.", "notice");
+        } else {
+          order.status = "HELD";
+          seat.status = "HELD";
+          showMessage("Payment was declined. No ticket was issued; the seat remains held until its expiry so the buyer can retry.", "error");
+        }
+      } else {
+        order.status = "PAID";
+        order.ticketId = `TKT-${order.id.slice(-4)}`;
+        seat.status = "SOLD";
+        seat.holdExpiresAt = null;
+        showMessage(`Payment approved. Order ${order.id} is confirmed and ticket ${order.ticketId} is ready.`, "success");
+      }
+      render();
+    }
+
+    document.getElementById("buyerSelect").addEventListener("change", (event) => {
+      state.buyerId = event.target.value;
+      showMessage(`Now acting as ${buyers[state.buyerId]}. Select a seat to continue.`, "");
+      render();
+    });
+
+    document.getElementById("joinQueueButton").addEventListener("click", () => {
+      const queue = currentQueue();
+      if (!queue.includes(state.buyerId) && !currentAdmittedBuyers().includes(state.buyerId)) {
+        queue.push(state.buyerId);
+        showMessage(`${buyers[state.buyerId]} joined the FIFO waiting room. Refreshing does not improve this position in production.`, "success");
+      }
+      render();
+    });
+
+    document.getElementById("admitNextButton").addEventListener("click", () => {
+      const nextBuyer = currentQueue().shift();
+      if (nextBuyer) {
+        currentAdmittedBuyers().push(nextBuyer);
+        showMessage(`${buyers[nextBuyer]} was admitted next, in queue order.`, "success");
+      }
+      render();
+    });
+
+    document.getElementById("holdButton").addEventListener("click", createHold);
+    document.getElementById("payButton").addEventListener("click", () => {
+      const order = currentOrder(selectedSeat());
+      if (!order || order.userId !== state.buyerId) {
+        showMessage("You can only pay for your own active hold.", "error");
+        return;
+      }
+      if (order.status === "HELD" && order.expiresAt <= Date.now()) {
+        expireOrder(order);
+        showMessage("409 Conflict — this hold expired. Choose an available seat and create a new hold.", "error");
+        render();
+        return;
+      }
+      finishPayment(order, document.getElementById("paymentOutcome").value);
+    });
+
+    document.getElementById("expireButton").addEventListener("click", () => {
+      const order = currentOrder(selectedSeat());
+      if (!order || order.userId !== state.buyerId || order.status !== "HELD") return;
+      expireOrder(order);
+      showMessage("Hold expired in the demo. The seat is available to the next buyer.", "notice");
+      render();
+    });
+
+    document.getElementById("resetButton").addEventListener("click", resetState);
+    setInterval(expireTimedOutHolds, 1000);
+    resetState();
+  </script>
+</body>
+</html>
