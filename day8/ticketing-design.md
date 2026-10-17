@@ -1,4 +1,4 @@
-# TicketHub System Design
+﻿# TicketHub System Design
 
 TicketHub lets customers discover events, choose seats, hold them briefly, and pay for tickets. The key design goal is that high demand must never cause the same seat to be sold twice.
 
@@ -54,7 +54,7 @@ All endpoints use HTTPS. Buyer endpoints require authentication; the server gets
 | `GET /api/v1/me/orders/{order_id}` | Read the buyer's order and payment status | `200 OK` |
 | `GET /api/v1/me/tickets` | List the buyer's confirmed tickets | `200 OK` |
 
-Authorization values in the examples are redacted; a real request sends `Authorization: Bearer <access-token>`.
+The examples use `Authorization: Bearer <access-token>`; the server validates it and derives the buyer identity from it.
 
 Example hold request:
 
@@ -115,7 +115,7 @@ Return `400 Bad Request` for malformed input, `401 Unauthorized` for missing/inv
 
 The relational schema uses PostgreSQL types and syntax. An order is for one seat, so a multi-seat purchase creates one order per seat. Historical orders remain for audit and customer history.
 
-Relationships: **users 1-to-many orders; events 1-to-many seats; seats 1-to-many historical orders; each order belongs to exactly one user and one seat; orders 1-to-many payment attempts.** `seats.current_order_id` identifies that seat's current hold or sale; it is null when available.
+Relationships: **users 1-to-many orders and queue entries; events 1-to-many seats and queue entries; seats 1-to-many historical orders; each order belongs to exactly one user and one seat; orders 1-to-many payment attempts.** `seats.current_order_id` identifies that seat's current hold or sale; it is null when available.
 
 ```sql
 CREATE TABLE users (
@@ -176,6 +176,21 @@ CREATE TABLE payment_attempts (
     UNIQUE (order_id, idempotency_key)
 );
 
+CREATE TABLE sale_queue_entries (
+    queue_entry_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    event_id BIGINT NOT NULL REFERENCES events(event_id),
+    user_id BIGINT NOT NULL REFERENCES users(user_id),
+    entered_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(12) NOT NULL DEFAULT 'WAITING'
+        CHECK (status IN ('WAITING', 'ADMITTED', 'EXPIRED', 'CANCELLED')),
+    admitted_at TIMESTAMPTZ,
+    UNIQUE (event_id, user_id),
+    CHECK (
+        (status = 'ADMITTED' AND admitted_at IS NOT NULL)
+        OR (status <> 'ADMITTED' AND admitted_at IS NULL)
+    )
+);
+
 ALTER TABLE seats
     ADD CONSTRAINT fk_seat_current_order
     FOREIGN KEY (current_order_id, seat_id) REFERENCES orders(order_id, seat_id);
@@ -186,9 +201,12 @@ CREATE UNIQUE INDEX uq_orders_active_seat
 CREATE INDEX idx_events_sale_starts_at ON events (sale_starts_at);
 CREATE INDEX idx_orders_user_created ON orders (user_id, created_at DESC);
 CREATE INDEX idx_payment_attempts_order ON payment_attempts (order_id, created_at DESC);
+CREATE INDEX idx_sale_queue_fifo
+    ON sale_queue_entries (event_id, entered_at, queue_entry_id)
+    WHERE status = 'WAITING';
 ```
 
-The circular reference is intentional: `current_order_id` is added as a composite foreign key after `orders` exists. `UNIQUE (order_id, seat_id)` lets the database also verify that a seat points to an order for that same seat. In one hold transaction, conditionally update the seat to `HELD` with an expiry, insert its matching order, set `current_order_id`, and commit; intermediate states are not visible outside the transaction. The check allows that temporary uncommitted state, while the active-order partial unique index prevents multiple active orders for a seat. The seat-location unique key prevents duplicate seat definitions. Store money as integer cents to avoid floating-point rounding.
+The schema has six tables: users, events, seats, orders, payment_attempts, and sale_queue_entries. The queue table makes the FIFO design durable across page refreshes and gives the queue endpoints a persistent entry ID. The partial FIFO index supports retrieving the next waiting buyer in entry-time order. The circular seat/order reference is intentional: `current_order_id` is added as a composite foreign key after `orders` exists. `UNIQUE (order_id, seat_id)` lets the database verify that a seat points to an order for that same seat. In one hold transaction, conditionally update the seat to `HELD` with an expiry, insert its matching order, set `current_order_id`, and commit; intermediate states are not visible outside the transaction. The active-order partial unique index prevents multiple active orders for a seat. The seat-location unique key prevents duplicate seat definitions. Store money as integer cents to avoid floating-point rounding.
 
 ## 5. Preventing double booking
 
@@ -273,6 +291,18 @@ For the sale, warm cacheable event data, load-test to the stated burst target, a
 ### Live demo
 Open [demo.html](./demo.html) in a browser. The demo lets a presenter browse sample events, join and advance a FIFO waiting room, switch between two buyers, hold and pay for a seat, view tickets, trigger expiry, and simulate approved, declined, and timed-out payment outcomes. For the main conflict case, have Buyer A join and admit them from the queue, then hold a seat. Have Buyer B join and admit them next, then try to hold that same seat; the demo shows a friendly conflict and leaves Buyer A's hold intact. This is an in-browser simulation using sample data, not a deployed backend or real payment service; it demonstrates user flows and errors, while the database transaction above describes production correctness.
 
+### Presentation run-through
+1. Introduce the constraints: 200,000 sale visitors, 20,000 seats, and about 10 buyers competing per seat.
+2. In the demo, let Buyer A join the queue, admit them, and hold a seat. Switch to Buyer B, join and admit them next, then attempt the same seat. Point out the graceful conflict and explain why the losing request does not change inventory.
+3. Show payment decline (no ticket), then approval (ticket appears). Demonstrate one hold expiry returning a seat to availability. If time allows, show payment timeout remaining pending until reconciliation.
+4. Close with the production guarantee: primary-database conditional update and unique constraint inside transactions; the browser demo demonstrates the flow, not database-level concurrency.
+
+Likely questions:
+- **What if two people click at once?** The primary conditionally changes only an available seat. One transaction wins; the other updates zero rows and gets `409 Conflict`.
+- **Why not trust the seat map?** It can be stale due to caching or another buyer's action; it is only a snapshot.
+- **What if payment times out?** Keep the seat reserved in `PAYMENT_PENDING`, reuse the same provider idempotency key, and reconcile before releasing it.
+- **Why queue buyers?** It controls the admitted rate and gives a consistent published order instead of overwhelming the primary.
+
 ## 7. Trade-offs
 
 - **Waiting room vs. immediate access:** A queue delays users and adds a service to operate, but smooths extreme bursts and supports fair admission. For a scarce, popular sale, predictable access is preferable to letting clients race the database.
@@ -282,4 +312,4 @@ Open [demo.html](./demo.html) in a browser. The demo lets a presenter browse sam
 
 ## 8. Presentation close
 
-“The seat map is only a snapshot; the primary database is the authority. A conditional update inside a transaction lets only one request claim an available seat. The winner receives a hold; the other buyer gets a clear conflict and can choose another seat. A waiting room protects that database during the sale, and idempotency plus reconciliation protect payment retries.”
+â€œThe seat map is only a snapshot; the primary database is the authority. A conditional update inside a transaction lets only one request claim an available seat. The winner receives a hold; the other buyer gets a clear conflict and can choose another seat. A waiting room protects that database during the sale, and idempotency plus reconciliation protect payment retries.â€
